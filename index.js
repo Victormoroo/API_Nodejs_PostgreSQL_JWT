@@ -99,3 +99,42 @@ app.post('/users', async (req, res) => {
     return res.status(500).json({ error: 'Erro interno do servidor!' });
   }
 });
+
+app.put("/users/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, email, password } = req.body;
+
+    const client = await pool.connect();
+
+    // Verificar se o usuário existe
+    const findUser = await client.query(`SELECT * FROM users WHERE id = ${id}`);
+    if (!findUser.rows[0]) {
+      return res.status(404).json({ error: 'Usuário não encontrado!' });
+    }
+
+    // Atualizar os campos informados (nome, email ou senha)
+    let updateQuery = 'UPDATE users SET';
+    if (name) {
+      updateQuery += ` name = '${name}',`;
+    }
+    if (email) {
+      updateQuery += ` email = '${email}',`;
+    }
+    if (password) {
+      updateQuery += ` password = '${password}',`;
+    }
+    // Remover a última vírgula da query
+    updateQuery = updateQuery.slice(0, -1);
+
+    // Adicionar a condição para atualizar apenas o usuário com o id informado
+    updateQuery += ` WHERE id = ${id}`;
+
+    // Executar a atualização
+    await client.query(updateQuery);
+    return res.status(200).json({ message: 'Usuário atualizado com sucesso!' });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro interno do servidor!' });
+  }
+});
