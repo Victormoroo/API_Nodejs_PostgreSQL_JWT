@@ -138,3 +138,29 @@ app.put("/users/:id", async (req, res) => {
     return res.status(500).json({ error: 'Erro interno do servidor!' });
   }
 });
+
+app.delete("/users/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (id <= 0 || isNaN(id)) {
+      return res.status(400).json({ error: 'ID inválido!' });
+    }
+
+    const client = await pool.connect();
+    
+    // Verificar se o usuário existe
+    const findUser = await client.query(`SELECT * FROM users where id=${id}`);
+    if (!findUser.rows[0]) {
+      return res.status(404).json({ error: 'Usuário não encontrado!' });
+    }
+
+    // Excluir o usuário do banco de dados
+    await client.query(`DELETE FROM users WHERE id=${id}`);
+
+    return res.status(200).json({ message: 'Usuário excluído com sucesso!' });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro interno do servidor!' });
+  }
+});
