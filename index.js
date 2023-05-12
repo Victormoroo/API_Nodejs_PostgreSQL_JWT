@@ -47,3 +47,15 @@ app.post("/login", async (req, res) => {
     return res.status(500).json({ error: 'Erro interno do servidor!' });
   }
 });
+
+app.get("/users", async (req, res) => {
+  try {
+      const client = await pool.connect();
+      const { rows } = await client.query("SELECT * FROM Users");
+      console.table(rows);
+      res.status(200).send(rows);
+  } catch (error) {
+      console.error(error);
+      res.status(500).send("Erro de conexão com o servidor");
+  }
+});
