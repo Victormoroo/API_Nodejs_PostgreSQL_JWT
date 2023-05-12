@@ -59,3 +59,43 @@ app.get("/users", async (req, res) => {
       res.status(500).send("Erro de conexão com o servidor");
   }
 });
+
+app.post('/users', async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+
+    if (!password || !name) {
+      return res.status(400).json({ error: "Os campos 'senha' e 'nome' são obrigatórios!" });
+    }
+
+    const client = await pool.connect();
+
+    // Verificar se o usuário já existe
+    const findUser = await client.query(`SELECT * FROM users WHERE email='${email}'`);
+    if (findUser.rows.length > 0) {
+      return res.status(409).json({ error: 'Este email já está em uso!' });
+    }
+
+    // Inserir o novo usuário no banco de dados
+    const result = await client.query(
+      `INSERT INTO users (name, email, password) VALUES ('${name}', '${email}', '${password}') RETURNING id`
+    );
+
+    const { id: userId } = result.rows[0];
+
+    // Gerar um token para o novo usuário
+    const token = jwt.sign({ id: userId }, 'sua_chave_secreta', { expiresIn: '1h' });
+
+    return res.status(201).json({
+      user: {
+        id: userId,
+        name,
+        email,
+      },
+      token,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: 'Erro interno do servidor!' });
+  }
+});
